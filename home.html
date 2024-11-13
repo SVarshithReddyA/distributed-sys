@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload to Blob Storage</title>
+</head>
+<body>
+    <h1>Upload Image to Blob Storage</h1>
+    <form id="uploadForm">
+        <input type="file" id="fileInput" name="file" accept="image/*" required />
+        <button type="submit">Upload</button>
+    </form>
+    <p id="statusMessage"></p>
+
+    <script>
+        const form = document.getElementById("uploadForm");
+        const statusMessage = document.getElementById("statusMessage");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();  // Prevent form submission
+
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                // Send POST request to Azure Function
+                const response = await fetch("https://distributed-sys.azurewebsites.net/api/http_triger", {
+                    method: "POST",
+                    body: formData
+                });
+
+                // Handle response
+                if (response.ok) {
+                    statusMessage.innerText = `File '${file.name}' uploaded successfully!`;
+                } else {
+                    const errorText = await response.text();
+                    statusMessage.innerText = `Upload failed: ${errorText}`;
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                statusMessage.innerText = `Upload failed: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
