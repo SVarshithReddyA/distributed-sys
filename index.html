@@ -29,7 +29,7 @@
 
             try {
                 // Send POST request to Azure Function
-                const response = await fetch("https://distributed-sys.azurewebsites.net/api/http_triger", {
+                const response = await fetch("https://distributed-sys.azurewebsites.net/api/http_trigger?name=azure", {
                     method: "POST",
                     body: formData
                 });
