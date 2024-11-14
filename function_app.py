@@ -15,26 +15,41 @@ UPLOAD_CONTAINER = "filestore"
 # Define the HTTP trigger function
 @app.route(route="http_trigger")
 def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function for image upload processed a request.')
+    if req.method == 'GET':
+        # Minimalist HTML form for file upload
+        html_form = """
+        <!doctype html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Upload File</title>
+        </head>
+        <body>
+            <h2>Upload a File to Azure Blob Storage</h2>
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" name="file">
+                <input type="submit" value="Upload">
+            </form>
+        </body>
+        </html>
+        """
+        return func.HttpResponse(html_form, mimetype="text/html")
 
-    try:
-        # Extract file from the request
-        image_file = req.files['file']
-        file_name = image_file.filename
+    elif req.method == 'POST':
+        try:
+            # Access file content directly from the request body
+            file = req.files.get("file") or req.get_body()
+            if not file:
+                return func.HttpResponse("No file provided", status_code=400)
 
-        # Upload to Blob Storage
-        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-        blob_client = blob_service_client.get_blob_client(container=UPLOAD_CONTAINER, blob=file_name)
-        blob_client.upload_blob(image_file.stream, overwrite=True)
+            # Set a filename
+            filename = secure_filename(req.route_params.get("file", "uploaded_file"))
 
-        return func.HttpResponse(
-            f"Image '{file_name}' uploaded successfully to Blob Storage.",
-            status_code=200
-        )
-
-    except Exception as e:
-        logging.error(f"Error uploading image: {e}")
-        return func.HttpResponse(
-            f"Failed to upload image. Error: {str(e)}",
-            status_code=500
-        )
+            # Upload to blob
+            blob_client = blob_service_client.get_blob_client(container=UPLOAD_CONTAINER, blob=filename)
+            blob_client.upload_blob(file, overwrite=True)
+            
+            return func.HttpResponse(f"File '{filename}' uploaded successfully.", status_code=200)
+        except Exception as e:
+            logging.error(f"Error uploading file: {e}")
+            return func.HttpResponse(f"Error uploading file: {str(e)}", status_code=500)
