@@ -21,26 +21,24 @@ except Exception:
 
 
 def upload_file_to_blob(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Helper function to handle file upload.
-    """
     try:
-        # Access file content directly from the request body
-        file = req.files.get("file") or req.get_body()
+        # Access file content directly from the request
+        file = req.files.get("file")  # Get the file from multipart form-data
         if not file:
             return func.HttpResponse("No file provided", status_code=400)
 
-        # Set a filename
-        filename = secure_filename(req.params.get("file", "uploaded_file"))
+        # Derive filename from the uploaded file or set a default if unavailable
+        filename = secure_filename(file.filename) if hasattr(file, 'filename') else "uploaded_file"
 
         # Upload to blob
         blob_client = blob_service_client.get_blob_client(container=UPLOAD_CONTAINER, blob=filename)
-        blob_client.upload_blob(file, overwrite=True)
+        blob_client.upload_blob(file.read(), overwrite=True)  # Read file content and upload
 
         return func.HttpResponse(f"File '{filename}' uploaded successfully.", status_code=200)
     except Exception as e:
         logging.error(f"Error uploading file: {e}")
         return func.HttpResponse(f"Error uploading file: {str(e)}", status_code=500)
+
 
 
 @app.route(route="http_trigger")
