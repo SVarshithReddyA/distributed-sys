@@ -3,10 +3,11 @@ import logging
 from azure.storage.blob import BlobServiceClient
 from werkzeug.utils import secure_filename
 import os
+import blob_trigger
 
 # Initialize the Azure Function app
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
-
+app.register_functions(blob_trigger) 
 # Set up the Blob service client
 connection_string = "DefaultEndpointsProtocol=https;AccountName=distributedsys;AccountKey=jLyjj/LyKtRVjlVfdawM5uaBhQZfBUiec+9xxiPxgWVXzn/yng4Rp6/XZojKSjVWZbejiBXuZ+MS+ASteWFJaA==;EndpointSuffix=core.windows.net"  # Use environment variable
 blob_service_client = BlobServiceClient.from_connection_string(connection_string)
@@ -72,3 +73,5 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
             "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.",
             status_code=200
         )
+    
+    
