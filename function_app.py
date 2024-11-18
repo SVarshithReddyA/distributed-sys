@@ -76,10 +76,12 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.blob_trigger(arg_name="myblob", path="filestore/{name}",
                                connection="AzureWebJobsStorage") 
-def blobTrigger(myblob: func.InputStream):
+def blobTrigger(myblob: func.InputStream, name: str):
     logging.info(f"Python blob trigger function processed blob"
-                f"Name: {myblob.name}"
+                f"Name: {name}"
                 f"Blob Size: {myblob.length} bytes")
+    process_stock_data(myblob, name)
+
 def process_stock_data(myblob: func.InputStream, name: str):
     """
     Blob trigger function to analyze uploaded stock data and generate insights.
