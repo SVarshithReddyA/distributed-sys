@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Analysis</title>
 </head>
+
 <body>
     <h1>Upload Historical Data to Analyze</h1>
     <form id="uploadForm" enctype="multipart/form-data">
@@ -76,21 +78,21 @@
                 const chartFilePath = `filestore/charts_filestore/${originalFileName.replace(".csv", ".png")}`;
 
                 // Fetch CSV
-                const csvResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/blob?filePath=${csvFilePath}`);
+                const csvResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/get_from_blob?filePath=${csvFilePath}`);
                 if (csvResponse.ok) {
                     const csvText = await csvResponse.text();
-                    displayCSV(csvText);
+                    displayCSV(csvText); // Display the CSV in your desired format
                 } else {
                     statusMessage.innerText += "\nFailed to fetch CSV insights.";
                 }
 
                 // Fetch Chart
-                const chartResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/blob?filePath=${chartFilePath}`);
+                const chartResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/get_from_blob?filePath=${chartFilePath}`);
                 if (chartResponse.ok) {
                     const chartBlob = await chartResponse.blob();
                     const chartURL = URL.createObjectURL(chartBlob);
-                    chartImage.src = chartURL;
-                    outputSection.style.display = "block";
+                    chartImage.src = chartURL; // Update the image element with the chart
+                    outputSection.style.display = "block"; // Show the chart section
                 } else {
                     statusMessage.innerText += "\nFailed to fetch chart.";
                 }
@@ -119,4 +121,5 @@
         }
     </script>
 </body>
+
 </html>

@@ -224,3 +224,48 @@ def generate_line_chart(df: pd.DataFrame) -> BytesIO:
     plt.close()
     buffer.seek(0)
     return buffer
+
+@app.route(route="get_from_blob", auth_level=func.AuthLevel.ANONYMOUS)
+def get_from_blob(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Python HTTP trigger function for fetching files processed a request.')
+
+    # Get the filePath parameter from the request
+    file_path = req.params.get('filePath')
+    if not file_path:
+        try:
+            req_body = req.get_json()
+        except ValueError:
+            pass
+        else:
+            file_path = req_body.get('filePath')
+
+    if not file_path:
+        return func.HttpResponse(
+            "Please specify a filePath in the query string or request body.",
+            status_code=400
+        )
+
+    try:
+        # Fetch the blob using Azure SDK
+        blob_client = blob_service_client.get_blob_client(container=UPLOAD_CONTAINER, blob=file_path)
+
+        # Download the blob content
+        blob_data = blob_client.download_blob().readall()
+
+        # Determine content type for response
+        if file_path.endswith(".csv"):
+            content_type = "text/csv"
+        elif file_path.endswith(".png"):
+            content_type = "image/png"
+        else:
+            content_type = "application/octet-stream"
+
+        # Return the file content as an HTTP response
+        return func.HttpResponse(
+            body=blob_data,
+            status_code=200,
+            mimetype=content_type
+        )
+    except Exception as e:
+        logging.error(f"Error fetching blob {file_path}: {e}")
+        return func.HttpResponse(f"Error fetching blob {file_path}: {str(e)}", status_code=500)
