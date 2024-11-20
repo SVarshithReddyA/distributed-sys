@@ -11,7 +11,7 @@ import os
 # Initialize the Azure Function app
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-connection_string = "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"
+connection_string = os.getenv("WEBSITE_CONTENTAZUREFILECONNECTIONSTRING")
 blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 UPLOAD_CONTAINER = "filestore"  # Your target blob container name
 
