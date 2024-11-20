@@ -32,7 +32,7 @@
         const chartImage = document.getElementById("chartImage");
 
         form.addEventListener("submit", async (e) => {
-            e.preventDefault(); // Prevent default form submission
+            e.preventDefault();
 
             const fileInput = document.getElementById("fileInput");
             const file = fileInput.files[0];
@@ -81,7 +81,7 @@
                 const csvResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/get_from_blob?filePath=${csvFilePath}`);
                 if (csvResponse.ok) {
                     const csvText = await csvResponse.text();
-                    displayCSV(csvText); // Display the CSV in your desired format
+                    displayCSV(csvText);
                 } else {
                     statusMessage.innerText += "\nFailed to fetch CSV insights.";
                 }
@@ -91,8 +91,8 @@
                 if (chartResponse.ok) {
                     const chartBlob = await chartResponse.blob();
                     const chartURL = URL.createObjectURL(chartBlob);
-                    chartImage.src = chartURL; // Update the image element with the chart
-                    outputSection.style.display = "block"; // Show the chart section
+                    chartImage.src = chartURL;
+                    outputSection.style.display = "block";
                 } else {
                     statusMessage.innerText += "\nFailed to fetch chart.";
                 }
@@ -103,7 +103,7 @@
         }
 
         function displayCSV(csvText) {
-            csvTable.innerHTML = ""; // Clear existing table content
+            csvTable.innerHTML = "";
 
             const rows = csvText.trim().split("\n");
             rows.forEach(row => {

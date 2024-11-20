@@ -6,11 +6,12 @@ import logging
 import pandas as pd
 import matplotlib.pyplot as plt
 from io import BytesIO
+import os
 
 # Initialize the Azure Function app
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-connection_string = "DefaultEndpointsProtocol=https;AccountName=distributedsys;AccountKey=jLyjj/LyKtRVjlVfdawM5uaBhQZfBUiec+9xxiPxgWVXzn/yng4Rp6/XZojKSjVWZbejiBXuZ+MS+ASteWFJaA==;EndpointSuffix=core.windows.net"  # Use environment variable
+connection_string = "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"
 blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 UPLOAD_CONTAINER = "filestore"  # Your target blob container name
 
@@ -45,9 +46,6 @@ def upload_file_to_blob(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="http_trigger")
 def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    HTTP trigger function that either responds with a greeting or handles file uploads.
-    """
     logging.info('Python HTTP trigger function processed a request.')
 
     # Check the route or query parameter to determine the action
@@ -76,15 +74,9 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
         )
     
 
-@app.blob_trigger(arg_name="myblob", path="filestore/{name}",
-                               connection="AzureWebJobsStorage") 
+@app.blob_trigger(arg_name="myblob", path="filestore/{name}",connection="AzureWebJobsStorage") 
 def blobTrigger(myblob: func.InputStream):
-    logging.info(f"Python blob trigger function processed blob"
-                f"Name: {myblob.name}"
-                f"Blob Size: {myblob.length} bytes")
-    """
-    Blob trigger function to analyze uploaded stock data and generate insights.
-    """
+    logging.info(f"Python blob trigger function processed blob"f"Name: {myblob.name}"f"Blob Size: {myblob.length} bytes")
     logging.info(f"Blob Trigger - Processing file: {myblob.name}, Size: {myblob.length} bytes")
     
     try:
@@ -109,11 +101,10 @@ def blobTrigger(myblob: func.InputStream):
 
         # Save results back to a Blob
         # Convert analysis results to a DataFrame
-        results_df = pd.DataFrame([analysis_results])  # Wrap the dictionary in a list
+        results_df = pd.DataFrame([analysis_results])
         results_csv = results_df.to_csv(index=False)
 
         # Upload the CSV to Blob Storage
-        
         results_blob_client = blob_service_client.get_blob_client(container=UPLOAD_CONTAINER, blob=f"results_{myblob.name}")
         results_blob_client.upload_blob(results_csv, overwrite=True)
         # Upload the chart as a blob
@@ -122,26 +113,21 @@ def blobTrigger(myblob: func.InputStream):
             blob=f"chart_{myblob.name.replace('.csv', '.png')}"
         )
 
-        chart_buffer.seek(0)  # Reset the buffer pointer to the beginning
+        # Reset the buffer pointer to the beginning
+        chart_buffer.seek(0)  
         chart_blob_client.upload_blob(
             chart_buffer, 
             overwrite=True, 
             content_settings=ContentSettings(content_type='image/png')
         )
         logging.info(f"Chart uploaded successfully as chart_{myblob.name}.png")
-
-        # results_blob_client.upload_blob(chart_buffer, overwrite=True, content_settings=ContentSettings(content_type='image/png'))
         logging.info(f"Uploading analysis results to blob: results_{myblob.name}")
-        # logging.info(f"Uploading chart to blob: chart_{myblob.name}.png")
 
     except Exception as e:
         logging.error(f"Error processing file {myblob.name}: {e}")
 
 
 def analyze_stock_data(df: pd.DataFrame) -> dict:
-    """
-    Perform analysis on stock data and return insights and a line chart.
-    """
     try:
         # Replace '-' with '/' in the 'Date' column
         df['Date'] = df['Date'].str.replace('-', '/')
@@ -176,7 +162,6 @@ def analyze_stock_data(df: pd.DataFrame) -> dict:
             "performance_change": f"{((df['Close/Last'].iloc[-1] - df['Close/Last'].iloc[0]) / df['Close/Last'].iloc[0]) * 100:.2f}%",
         }
 
-        # Example: Add rolling average or volatility if needed
         df['7_day_avg'] = df['Close/Last'].rolling(window=7).mean()
         insights["7_day_average_latest"] = df["7_day_avg"].iloc[-1]
 
@@ -191,9 +176,6 @@ def analyze_stock_data(df: pd.DataFrame) -> dict:
 
 
 def generate_line_chart(df: pd.DataFrame) -> BytesIO:
-    """
-    Generate a line chart for stock data and save it to a buffer.
-    """
     # Determine the time span of the data
     if (df['Date'].max() - df['Date'].min()).days > 365:
         # Group by year for multi-year data
@@ -247,10 +229,7 @@ def get_from_blob(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     try:
-        # Fetch the blob using Azure SDK
         blob_client = blob_service_client.get_blob_client(container=UPLOAD_CONTAINER, blob=file_path)
-
-        # Download the blob content
         blob_data = blob_client.download_blob().readall()
 
         # Determine content type for response
