@@ -61,7 +61,7 @@
                     // Fetch generated files after a delay
                     setTimeout(async () => {
                         await fetchGeneratedFiles(file.name);
-                    }, 20000);
+                    });
                 } else {
                     const errorText = await response.text();
                     statusMessage.innerText = `Upload failed: ${errorText}`;
