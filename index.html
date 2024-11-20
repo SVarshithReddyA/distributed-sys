@@ -75,7 +75,7 @@
         async function fetchGeneratedFiles(originalFileName) {
             try {
                 const csvFilePath = `results_filestore/${originalFileName}`;
-                const chartFilePath = `chart_filestore/${originalFileName}(".csv", ".png")}`;
+                const chartFilePath = `chart_filestore/${originalFileName.replace(".csv", ".png")}`;
 
                 // Fetch CSV
                 const csvResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/get_from_blob?filePath=${csvFilePath}`);
