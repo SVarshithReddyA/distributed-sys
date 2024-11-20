@@ -7,3 +7,4 @@ azure-storage-blob
 Flask
 Werkzeug
 pandas
+matplotlib

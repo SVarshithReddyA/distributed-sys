@@ -3,56 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload to Blob Storage</title>
+    <title>Stock Analysis</title>
 </head>
 <body>
-    <h1>Upload CSV to Blob Storage</h1>
+    <h1>Upload Historical Data to Analyze</h1>
     <form id="uploadForm" enctype="multipart/form-data">
         <label for="fileInput">Select a CSV file to upload:</label>
         <input type="file" id="fileInput" name="file" accept=".csv" required />
         <button type="submit">Upload</button>
     </form>
     <p id="statusMessage"></p>
-    
+
+    <div id="outputSection" style="display: none;">
+        <h2>Generated Insights</h2>
+        <table id="csvTable" border="1"></table>
+
+        <h2>Generated Chart</h2>
+        <img id="chartImage" alt="Generated Line Chart" style="max-width: 100%; height: auto;">
+    </div>
+
     <script>
         const form = document.getElementById("uploadForm");
         const statusMessage = document.getElementById("statusMessage");
-    
+        const outputSection = document.getElementById("outputSection");
+        const csvTable = document.getElementById("csvTable");
+        const chartImage = document.getElementById("chartImage");
+
         form.addEventListener("submit", async (e) => {
-            e.preventDefault();  // Prevent the default form submission behavior
-    
+            e.preventDefault(); // Prevent default form submission
+
             const fileInput = document.getElementById("fileInput");
             const file = fileInput.files[0];
-    
-            if (!file) {
-                statusMessage.innerText = "Please select a file to upload.";
+
+            if (!file || !file.name.endsWith(".csv")) {
+                statusMessage.innerText = "Please select a valid CSV file.";
                 return;
             }
-    
-            // Prepare the form data with the file
+
+            // Prepare the form data
             const formData = new FormData();
             formData.append("file", file);
-    
+
+            statusMessage.innerText = "Uploading file...";
             try {
-                // Make a POST request to the HTTP trigger API
+                // POST request to upload the file
                 const response = await fetch("https://distributed-sys.azurewebsites.net/api/http_trigger?action=upload", {
                     method: "POST",
                     body: formData
                 });
-    
-                // Handle the server response
+
                 if (response.ok) {
                     const responseText = await response.text();
-                    statusMessage.innerText = `Success: ${responseText}`;
+                    statusMessage.innerText = `Upload successful: ${responseText}`;
+
+                    // Fetch generated files after a delay
+                    setTimeout(async () => {
+                        await fetchGeneratedFiles(file.name);
+                    }, 2000);
                 } else {
                     const errorText = await response.text();
                     statusMessage.innerText = `Upload failed: ${errorText}`;
                 }
             } catch (error) {
-                console.error("Error:", error);
-                statusMessage.innerText = `Error: ${error.message}`;
+                console.error("Upload error:", error);
+                statusMessage.innerText = `Error during upload: ${error.message}`;
             }
         });
+
+        async function fetchGeneratedFiles(originalFileName) {
+            try {
+                const csvFilePath = `filestore/results_filestore/${originalFileName}`;
+                const chartFilePath = `filestore/charts_filestore/${originalFileName.replace(".csv", ".png")}`;
+
+                // Fetch CSV
+                const csvResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/blob?filePath=${csvFilePath}`);
+                if (csvResponse.ok) {
+                    const csvText = await csvResponse.text();
+                    displayCSV(csvText);
+                } else {
+                    statusMessage.innerText += "\nFailed to fetch CSV insights.";
+                }
+
+                // Fetch Chart
+                const chartResponse = await fetch(`https://distributed-sys.azurewebsites.net/api/blob?filePath=${chartFilePath}`);
+                if (chartResponse.ok) {
+                    const chartBlob = await chartResponse.blob();
+                    const chartURL = URL.createObjectURL(chartBlob);
+                    chartImage.src = chartURL;
+                    outputSection.style.display = "block";
+                } else {
+                    statusMessage.innerText += "\nFailed to fetch chart.";
+                }
+            } catch (error) {
+                console.error("Error fetching files:", error);
+                statusMessage.innerText += `\nError fetching generated files: ${error.message}`;
+            }
+        }
+
+        function displayCSV(csvText) {
+            csvTable.innerHTML = ""; // Clear existing table content
+
+            const rows = csvText.trim().split("\n");
+            rows.forEach(row => {
+                const rowData = row.split(",");
+                const tableRow = document.createElement("tr");
+                rowData.forEach(cell => {
+                    const tableCell = document.createElement("td");
+                    tableCell.innerText = cell.trim();
+                    tableRow.appendChild(tableCell);
+                });
+                csvTable.appendChild(tableRow);
+            });
+
+            outputSection.style.display = "block";
+        }
     </script>
 </body>
 </html>
